@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta property="og:image" content="resources/overview.png" />
+	<meta property="og:video" content="resources/teasers_compressed/gorilla.mp4">
+	<meta property="og:title"
+		content="Tuning-Free Multi-Event Long Video Generation via Synchronized Coupled Sampling" />
+	<meta property="og:description" content="Long video generation with multi-event dynamics in a tuning-free manner" />
+
+	<title>SynCoS</title>
+	<link href="./output.css" rel="stylesheet" />
+</head>
+
+<body>
+	<div class="bg-white">
+		<main class="isolate">
+			<!-- Hero section -->
+			<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+				<div class="mx-auto max-w-5xl px-6 lg:px-8">
+					<div class="mx-auto text-center">
+						<h1 class="text-balance text-6xl font-semibold tracking-tight text-gray-900">
+							Tuning-Free Multi-Event Long Video Generation
+							via Synchronized Coupled Sampling
+						</h1>
+						<p class="mt-8 text-pretty text-lg font-light text-gray-800 sm:text-xl/8">
+							TL; DR: A tuning-free inference framework
+							that extends any existing text-to-video diffusion
+							model <br />
+							for long video generation with multi-event dynamics.
+						</p>
+
+						<p class="mt-10 text-pretty text-lg font-light text-gray-800 sm:text-xl/8">
+							<div class="flex flex-wrap justify-center gap-4 text-2xl">
+								<a href="https://subin-kim-cv.github.io" class="hover:underline"><text
+										style="color: rgb(64, 86, 162);"">Subin Kim</text><sup>1</sup></a>,&nbsp&nbsp&nbsp
+								<a href="https://sites.google.com/view/seoungwugoh/" class="hover:underline"><text
+											style="color: rgb(64, 86, 162);"">Seoung Wug Oh</text><sup>2</sup></a>,&nbsp&nbsp&nbsp
+								<a href="https://juiwang.com/" class="hover:underline"><text style="color: rgb(64, 86, 162);"">Jui-Hsien Wang</text><sup>2</sup></a>,&nbsp&nbsp&nbsp
+								<a href="https://joonyoung-cv.github.io/" class="hover:underline"><text style="color: rgb(64, 86, 162);"">Joon-Young Lee</text><sup>2</sup></a>,&nbsp&nbsp&nbsp
+								<a href="https://alinlab.kaist.ac.kr/shin.html" class="hover:underline"><text style="color: rgb(64, 86, 162);"">Jinwoo Shin</text><sup>1</sup></a>
+							</div>
+
+							<br>
+							<span style=" font-size:20px">
+														<sup>1</sup> KAIST &nbsp; &nbsp; &nbsp;
+														<sup>2</sup> Adobe Research
+														</span>
+						</p>
+
+						<br><br>
+						<span class="link-block">
+							<a href="https://arxiv.org/abs/2503.08605"
+							   class="external-link button is-normal is-rounded is-dark">
+							  <span>arXiv</span>
+							</a>
+						</span>
+
+						<div class="mt-10 rounded-md bg-yellow-50 p-4 text-left">
+							<div class="flex">
+								<div class="shrink-0">
+									<svg class="size-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"
+										aria-hidden="true" data-slot="icon">
+										<path fill-rule="evenodd"
+											d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+											clip-rule="evenodd" />
+									</svg>
+								</div>
+								<div class="ml-3">
+									<h3 class="text-sm font-medium text-yellow-800">
+										Note
+									</h3>
+									<div class="mt-2 text-sm text-yellow-700">
+										<p>
+											If some visuals are not
+											displaying correctly, please
+											try refreshing the page.
+											Best viewed on a monitor and
+											with a Chrome browser
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+
+	</div>
+
+
+
+	<script>
+		function nextSlide(button) {
+			const carousel = button.closest('.carousel');
+			const items = carousel.querySelectorAll('.carousel-item');
+			const activeItem = carousel.querySelector('.carousel-item.active');
+			const dots = carousel.querySelectorAll('.dot');
+			let currentIndex = Array.from(items).indexOf(activeItem);
+
+			items[currentIndex].classList.remove('active');
+			dots[currentIndex].classList.remove('active');
+
+			currentIndex = (currentIndex + 1) % items.length;
+
+			items[currentIndex].classList.add('active');
+			dots[currentIndex].classList.add('active');
+		}
+
+		function prevSlide(button) {
+			const carousel = button.closest('.carousel');
+			const items = carousel.querySelectorAll('.carousel-item');
+			const activeItem = carousel.querySelector('.carousel-item.active');
+			const dots = carousel.querySelectorAll('.dot');
+			let currentIndex = Array.from(items).indexOf(activeItem);
+
+			items[currentIndex].classList.remove('active');
+			dots[currentIndex].classList.remove('active');
+
+			currentIndex = (currentIndex - 1 + items.length) % items.length;
+
+			items[currentIndex].classList.add('active');
+			dots[currentIndex].classList.add('active');
+		}
+
+		function goToSlide(dot, index) {
+			const carousel = dot.closest('.carousel');
+			const items = carousel.querySelectorAll('.carousel-item');
+			const dots = carousel.querySelectorAll('.dot');
+			const activeItem = carousel.querySelector('.carousel-item.active');
+
+			const currentIndex = Array.from(items).indexOf(activeItem);
+
+			items[currentIndex].classList.remove('active');
+			dots[currentIndex].classList.remove('active');
+
+			items[index].classList.add('active');
+			dots[index].classList.add('active');
+		}
+	</script>
+
+
+	<div class="container">
+
+
+		<div class="carousel-container">
+
+			<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+
+				<video id="mainVideo" autoplay muted loop playsinline width="100%">
+					<source src="./resources/teasers_compressed/gorilla.mp4" type="video/mp4">
+				</video>
+				<!-- </div> -->
+				<div class="video-section" style="position: relative;">
+
+					<!-- Caption -->
+					<p class="text-base-content/100 font-normal pt-3">
+						SynCoS generates high-quality long videos with diverse multi-event dynamics.
+						It employs a structured prompt, combining a global prompt shared across scenario-wise
+						consistency, and local prompts for precise control over specific intervals.
+						<br><br>
+						Various scenarios generated with SynCoS (arranged in row-major order from left to right, top to
+						bottom):
+						<br>
+						(1) object motion control (gorilla, Jamaican),
+						(2) cinematic effects (figure, apple, astronaut),
+						(3) storytelling (bear),
+						(4) camera control (beach),
+						(5) background changes (butterfly, city, surfing),
+						(6) physical transformations (candle),
+						(7) complex scene transitions (chihuahua, teddy bear),
+						and (8) compositional generation (squirrel, travelers).
+					</p>
+
+					<div class="click-hint">
+						<span>Click Below Examples ↓ </span>
+					</div>
+
+					<!-- Video Thumbnails -->
+					<div class="video-thumbnails">
+
+						<!-- Object motion controls -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/gorilla.mp4">
+							<img src="./resources/teasers_compressed/images/gorilla.png" alt="Gorilla"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/jamaican.mp4">
+							<img src="./resources/teasers_compressed/images/jamaican.png" alt="Jamaican"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Cinematic effects -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/figure.mp4">
+							<img src="./resources/teasers_compressed/images/figure.png" alt="Figure"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/apple.mp4">
+							<img src="./resources/teasers_compressed/images/apple.png" alt="Apple"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/astronaut.mp4">
+							<img src="./resources/teasers_compressed/images/astronaut.png" alt="Astronaut"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Stroytelling -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/bear.mp4">
+							<img src="./resources/teasers_compressed/images/bear.png" alt="Bear"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Camera controls -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/beach.mp4">
+							<img src="./resources/teasers_compressed/images/beach.png" alt="Beach"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Background changes -->
+
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/butterfly.mp4">
+							<img src="./resources/teasers_compressed/images/butterfly.png" alt="Butterfly"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/city.mp4">
+							<img src="./resources/teasers_compressed/images/city.png" alt="City"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/surfing.mp4">
+							<img src="./resources/teasers_compressed/images/surfing.png" alt="Surfing"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Physical transformations -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/candle.mp4">
+							<img src="./resources/teasers_compressed/images/candle.png" alt="Candle"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+						<!-- Complex scene transitions -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/chihuahua.mp4">
+							<img src="./resources/teasers_compressed/images/chihuahua.png" alt="Chihuahua"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/teddybear.mp4">
+							<img src="./resources/teasers_compressed/images/teddybear.png" alt="Teddybear"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+
+
+						<!-- Compositional generations -->
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/squirrel.mp4">
+							<img src="./resources/teasers_compressed/images/squirrel.png" alt="Squirrel"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+						<button class="video-thumb-btn" data-video="./resources/teasers_compressed/travelers.mp4">
+							<img src="./resources/teasers_compressed/images/travelers.png" alt="Travelers"
+								style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
+						</button>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+
+		<br><br>
+
+
+		<!-- Abstract section -->
+		<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+
+
+			<div class="border-b border-gray-300 pb-5">
+				<h3 class="text-3xl font-semibold text-gray-900">
+					Abstract
+				</h3>
+			</div>
+			<p class="text-base-content/80 font-normal pt-3">
+				While recent advancements in text-to-video diffusion models enable high-quality short video generation
+				from a single prompt, generating real-world long videos in a single pass remains challenging due to
+				limited data and high computational costs. To address this, several works propose tuning-free
+				approaches, i.e., extending existing models for long video generation, specifically using multiple
+				prompts to allow for dynamic and controlled content changes. However, these methods primarily focus on
+				ensuring smooth transitions between adjacent frames, often leading to content drift and a gradual loss
+				of semantic coherence over longer sequences. To tackle such an issue, we propose Synchronized Coupled
+				Sampling (SynCoS), a novel inference framework that synchronizes denoising paths across the entire
+				video, ensuring long-range consistency across both adjacent and distant frames. Our approach combines
+				two complementary sampling strategies: reverse and optimization-based sampling, which ensure seamless
+				local transitions and enforce global coherence, respectively. However, directly alternating between
+				these samplings misaligns denoising trajectories, disrupting prompt guidance and introducing unintended
+				content changes as they operate independently. To resolve this, SynCoS synchronizes them through a
+				grounded timestep and a fixed baseline noise, ensuring fully coupled sampling with aligned denoising
+				paths. Extensive experiments show that SynCoS significantly improves multi-event long video generation,
+				achieving smoother transitions and superior long-range coherence, outperforming previous approaches both
+				quantitatively and qualitatively.
+			</p>
+		</div>
+
+		<br><br>
+
+		<!-- Ablation section -->
+
+		<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+
+			<div class="border-b border-gray-300 pb-5">
+				<h3 class="text-3xl font-semibold text-gray-900">
+					Key observations
+					<p class="text-2xl text-base-content/80 font-normal pt-3">
+						Temporal co-denoising is a promising approach for seamlessly connecting short video clips
+						into a longer sequence.
+						However, existing methods suffer from either divergence or excessive convergence.
+						In contrast, SynCoS strikes a balance between them.
+					</p>
+				</h3>
+			</div>
+
+			<br />
+			<center>
+			<img src="resources/tsne.png" alt="t-SNE visualization of CLIP features" width="500" /> 
+		</center>
+
+			<p class="text-base-content/100 font-normal max-w-xl">
+				<b>t-SNE visualization of CLIP features</b> for the predicted video frames, x<sub>0|t</sub>,
+				at each timestep
+				using different samplings. Faded colors indicate earlier timesteps (t ≈ 1000), while vivid colors indicate
+				later, small timesteps (t ≈ 0), illustrating feature trajectory evolution over time (top to bottom)
+				<br /><br />
+
+				<b>1. <span style="color: rgb(6, 78, 35);">Temporal co-denoising with DDIM (green dots)</span></b>:
+				smooth transition but <b><span style="color: rgb(6, 78, 35);">divergent</span></b> denoising
+				paths<br />
+				<b>2. <span style="color: rgb(187, 17, 17);">Temporal co-denoising with CSD (red dots)</span></b>:
+				global coherency but <b><span style="color: rgb(187, 17, 17);">overly collapsed</span></b> into
+				noise-like artifacts<br />
+				<b>3. <span style="color: rgb(19, 41, 114);">Temporal co-denoising with SynCoS (blue
+						dots)</span></b>:
+				<b><span style="color: rgb(19, 41, 114);">balanced</span></b> capturing both global coherency
+				and local smoothness<br />
+			</p>
+
+			<div class="accordion divide-neutral/20 max-w-4xl divide-y">
+				<div class="accordion-item" id="first-nested">
+					<br>
+					<div id="first-nested-collapse"
+						class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+						aria-labelledby="first-nested" role="region">
+						<div class="video-block">
+							<div class="accordion divide-neutral/20 divide-y ps-6">
+								<div class="accordion-item active" id="first-sub-one">
+									<div id="third-sub-collapse-one"
+										class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+										aria-labelledby="first-sub-one" role="region">
+										<div class="px-5 pb-4">
+											<ul role="list" class="grid grid-cols-3 gap-x-1 gap-y-8">
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/ablation/coffee/wo_second_stage.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<p
+														class="pointer-events-none mt-2 block truncate text-sm font-medium text-red-900 text-center">
+														<span style="color: rgb(6, 78, 35);"><b>Temporal co-denosing with DDIM</b></span>
+													</p>
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/ablation/coffee/wo_first_stage.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<p
+														class="pointer-events-none mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+														<span style="color: rgb(187, 17, 17);"><b>Temporal co-denosing with CSD</b></span>
+													</p>
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/ablation/coffee/syncos.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<p
+														class="pointer-events-none mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+														<span style="color: rgb(19, 41, 114);"><b>Temporal co-denosing with SynCoS</b></span>
+													</p>
+												</li>
+											</ul>
+										</div>
+										<div class="px-5 pb-4">
+											<label
+												class="swap rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+												<input id="AblationControl1" type="checkbox" />
+												<span class="swap-off inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-play]"></span>
+													<span class="pl-1.5">Play All
+														Videos</span>
+												</span>
+												<span class="swap-on inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-pause]"></span>
+													Pause All Videos
+												</span>
+											</label>
+											<p class="text-base-content/80 font-normal pt-3">
+												<b>Global prompt</b>: A handsome young man sits at a wooden table,
+												enjoying
+												a moment of relaxation with a cup of coffee.
+												<br />
+												<b>Local prompt 1</b>:
+												He takes a slow sip enjoying his drink.
+												<br />
+												<b>Local prompt 2</b>:
+												A beautiful young lady sits beside him.
+											</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<br><br>
+
+		<!-- Overview section -->
+		<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+			<div class="border-b border-gray-300 pb-5">
+				<h3 class="text-3xl font-semibold text-gray-900">
+					Overview
+				</h3>
+				<p class="text-2xl text-base-content/80 font-normal pt-3">
+					Our tuning-free inference framework, Synchronized Coupled Sampling (SynCoS)
+				</p>
+			</div>
+
+			<br />
+			<img src="resources/overview.png" alt="Description of the image" width="1500" />
+			<p class="text-base-content/100 font-normal pt-3">
+
+				<b>1. Perform temporal co-denoising with DDIM</b>
+				and applying fusion for local smoothness.
+				At this stage, instead of fully reverting each chunk to its previous timestep,
+				SynCoS proceeds until obtaining the data space samples through DDIM update,
+				then fuse them to ensure smooth transitions between overlapping chunks.
+				<br />
+				<b>2. Refine the locally fused output to enforce global coherency</b>.
+				By intervening in the DDIM update and conceptualizing them
+				as a refinement task, SynCoS effectively achieves global
+				synchronization across multiple video chunks.
+				<br />
+				<b>3. Resume the temporal co-denoising with DDIM using locally and globally refined output.</b>
+				SynCoS reverts the refined and fused output to the previous timestep.
+				<br />
+			</p>
+		</div>
+
+		<br><br>
+
+		<!-- Comparison section -->
+		<div class="relative mx-auto max-w-5xl px-6 lg:px-8 mt-14">
+			<div class="border-b border-gray-300 pb-5">
+				<h3 class="text-3xl font-semibold text-gray-900">
+					Comparisons with baselines
+					<!-- Longer Video Generation with Multiple Prompts -->
+					<p class="text-2xl text-base-content/80 font-normal pt-3">
+						SynCoS outperforms baselines in <b>long-range temporal coherence</b>
+						while avoiding noise-like artifacts and severe overlapping between frames.
+					</p>
+				</h3>
+			</div>
+
+			<div class="accordion divide-neutral/20 max-w-4xl divide-y">
+				<div class="accordion-item" id="first-nested">
+					<!-- <button class="accordion-toggle inline-flex items-center gap-x-4 text-start"
+							aria-controls="first-nested-collapse" aria-expanded="true">
+							<span
+								class="icon-[tabler--plus] accordion-item-active:hidden text-base-content size-4.5 block shrink-0"></span>
+							<span
+								class="icon-[tabler--minus] accordion-item-active:block text-base-content size-4.5 hidden shrink-0"></span>
+							On CogVideoX
+						</button> -->
+					<center><br>
+						<h3 class="text-lg font-semibold">On CogVideoX-2B</h3>
+					</center>
+					<br>
+					<div id="first-nested-collapse"
+						class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+						aria-labelledby="first-nested" role="region">
+						<div class="video-block">
+							<div class="accordion divide-neutral/20 divide-y ps-6">
+								<div class="accordion-item active" id="first-sub-one">
+									<!-- <button
+													class="accordion-toggle inline-flex items-center gap-x-4 text-start"
+													aria-controls="first-sub-collapse-one"
+													aria-expanded="true">
+													<span
+														class="icon-[tabler--plus] accordion-item-active:hidden text-base-content size-4.5 block shrink-0"></span>
+													<span
+														class="icon-[tabler--minus] accordion-item-active:block text-base-content size-4.5 hidden shrink-0"></span>
+													Astronaut
+												</button> -->
+									<div id="first-sub-collapse-one"
+										class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+										aria-labelledby="first-sub-one" role="region">
+										<div class="px-5 pb-4">
+											<ul role="list" class="grid grid-cols-3 gap-x-1 gap-y-8">
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source
+																src="resources/comp_cogvideox/astronaut/genlvideo.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://g-u-n.github.io/projects/gen-long-video/index.html"
+														class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															Gen-L-Video
+														</p>
+													</a>
+
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/comp_cogvideox/astronaut/fifo.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://jjihwan.github.io/projects/FIFO-Diffusion"
+														class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															FIFO-Diffusion
+														</p>
+													</a>
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/comp_cogvideox/astronaut/ours.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://syncos2025.github.io/" class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															SynCoS (Ours)
+														</p>
+													</a>
+												</li>
+											</ul>
+										</div>
+										<div class="px-5 pb-4">
+											<label
+												class="swap rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+												<input id="CogVideoXControl" type="checkbox" />
+												<span class="swap-off inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-play]"></span>
+													<span class="pl-1.5">Play All
+														Videos</span>
+												</span>
+												<span class="swap-on inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-pause]"></span>
+													Pause All Videos
+												</span>
+											</label>
+											<p class="text-base-content/80 font-normal pt-3">
+												<b>Global prompt</b>: An
+												astronaut in a white
+												spacesuit with
+												reflective visor is seen
+												in the surreal landscape
+												of Mars.
+												<br />
+												<b>Local prompt 1</b>:
+												The astronaut walks
+												carefully through a
+												small puddle of liquid
+												on the Martian surface,
+												the red terrain
+												stretching out behind,
+												as ripples form with
+												each step.
+												<br />
+												<b>Local prompt 2</b>:
+												The astronaut stands
+												still, watching
+												fireworks explode in the
+												alien sky, their vibrant
+												colors contrasting
+												against the red Martian
+												horizon and rocky
+												landscape.
+											</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="accordion-item" id="second-nested">
+					<!-- <button class="accordion-toggle inline-flex items-center gap-x-4 text-start"
+							aria-controls="second-nested-collapse" aria-expanded="false">
+							<span
+								class="icon-[tabler--plus] accordion-item-active:hidden text-base-content size-4.5 block shrink-0"></span>
+							<span
+								class="icon-[tabler--minus] accordion-item-active:block text-base-content size-4.5 hidden shrink-0"></span>
+							On Open-Sora-Plan-v1.3
+						</button> -->
+					<center><br>
+						<h3 class="text-lg font-semibold">On Open-Sora Plan (v1.3)</h3>
+					</center>
+					<br>
+					<div id="second-nested-collapse"
+						class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+						aria-labelledby="second-nested" role="region">
+						<div class="video-block">
+							<div class="accordion divide-neutral/20 divide-y ps-6">
+								<div class="accordion-item active" id="second-sub-one">
+									<!-- <button
+													class="accordion-toggle inline-flex items-center gap-x-4 text-start"
+													aria-controls="second-sub-collapse-one"
+													aria-expanded="true">
+													<span
+														class="icon-[tabler--plus] accordion-item-active:hidden text-base-content size-4.5 block shrink-0"></span>
+													<span
+														class="icon-[tabler--minus] accordion-item-active:block text-base-content size-4.5 hidden shrink-0"></span>
+													Title1
+												</button> -->
+									<div id="second-sub-collapse-one"
+										class="accordion-content w-full overflow-hidden transition-[height] duration-300"
+										aria-labelledby="second-sub-one" role="region">
+										<div class="px-5 pb-4">
+											<ul role="list" class="grid grid-cols-3 gap-x-1 gap-y-8">
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/comp_opensora/camel/genlvideo.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://g-u-n.github.io/projects/gen-long-video/index.html"
+														class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															Gen-L-Video
+														</p>
+													</a>
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/comp_opensora/camel/fifo.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://jjihwan.github.io/projects/FIFO-Diffusion"
+														class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															FIFO-Diffusion
+														</p>
+													</a>
+												</li>
+												<li class="relative">
+													<div
+														class="group overflow-hidden rounded-lg bg-gray-100 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100">
+														<video class="size-full object-cover rounded-2xl">
+															<source src="resources/comp_opensora/camel/ours.mp4"
+																type="video/mp4" />
+														</video>
+													</div>
+													<a href="https://syncos2025.github.io/" class="hover:underline">
+														<p
+															class="mt-2 block truncate text-sm font-medium text-gray-900 text-center">
+															SynCoS (Ours)
+														</p>
+													</a>
+												</li>
+											</ul>
+										</div>
+										<div class="px-5 pb-4">
+											<label
+												class="swap rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+												<input id="OpenSoraControl" type="checkbox" />
+												<span class="swap-off inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-play]"></span>
+													<span class="pl-1.5">Play All
+														Videos</span>
+												</span>
+												<span class="swap-on inline-flex items-center gap-x-1.5">
+													<span class="icon-[tabler--player-pause]"></span>
+													Pause All Videos
+												</span>
+											</label>
+											<p class="text-base-content/80 font-normal pt-3">
+												<b>Global prompt</b>: A
+												camel in a snowy
+												environment, its
+												presence standing out
+												against the cold and
+												wintry landscape.
+												<br />
+												<b>Local prompt 1</b>:
+												The camel is running
+												across the snow field.
+												<br />
+												<b>Local prompt 2</b>:
+												The camel stands still
+												on the snow field.
+											</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		</main>
+
+		<br /><br />
+	</div>
+	<script src="bundle.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+	<script>
+		// Initialize Clipboard.js
+		(function () {
+			window.addEventListener("load", () => {
+				const clipboards =
+					document.querySelectorAll(".copy-clipboard");
+
+				clipboards.forEach((el) => {
+					const isToggleTooltip =
+						HSStaticMethods.getClassProperty(
+							el,
+							"--is-toggle-tooltip"
+						) !== "false";
+
+					const clipboard = new ClipboardJS(el, {
+						text: (trigger) => {
+							const clipboardText =
+								trigger.dataset.clipboardText;
+							if (clipboardText) return clipboardText;
+
+							const clipboardTarget =
+								trigger.dataset.clipboardTarget;
+							const targetElement =
+								document.querySelector(clipboardTarget);
+
+							return targetElement.tagName === "SELECT" ||
+								targetElement.tagName === "INPUT" ||
+								targetElement.tagName === "TEXTAREA" ?
+								targetElement.value :
+								targetElement.textContent;
+						},
+					});
+
+					clipboard.on("success", () => {
+						const defaultElement = el.querySelector(
+							".copy-clipboard-default"
+						);
+						const successElement = el.querySelector(
+							".copy-clipboard-success"
+						);
+						const successTextElement = el.querySelector(
+							".copy-clipboard-success-text"
+						);
+						const successText =
+							el.dataset.clipboardSuccessText || "";
+						const tooltip = el.closest(".tooltip");
+						const tooltipInstance = HSTooltip.getInstance(
+							tooltip,
+							true
+						);
+						let oldSuccessText;
+
+						if (successTextElement) {
+							oldSuccessText = successTextElement.textContent;
+							successTextElement.textContent = successText;
+						}
+
+						if (defaultElement && successElement) {
+							defaultElement.style.display = "none";
+							successElement.style.display = "block";
+						}
+						if (tooltip && isToggleTooltip)
+							HSTooltip.show(tooltip);
+						if (tooltip && !isToggleTooltip)
+							tooltipInstance.element.popperInstance.update();
+						setTimeout(() => {
+							if (successTextElement && oldSuccessText)
+								successTextElement.textContent =
+								oldSuccessText;
+							if (tooltip && isToggleTooltip)
+								HSTooltip.hide(tooltip);
+							if (tooltip && !isToggleTooltip)
+								tooltipInstance.element.popperInstance.update();
+							if (defaultElement && successElement) {
+								successElement.style.display = "";
+								defaultElement.style.display = "";
+							}
+						}, 3000);
+					});
+				});
+			});
+		})();
+
+		// JavaScript to play all videos simultaneously
+		document.addEventListener("DOMContentLoaded", () => {
+			const playPauseToggle1 =
+				document.querySelector("#CogVideoXControl");
+			const videos1 = document.querySelectorAll(
+				"#first-sub-collapse-one video"
+			);
+
+			// Add event listener to the checkbox
+			playPauseToggle1.addEventListener("change", (event) => {
+				if (event.target.checked) {
+					// Play all videos
+					videos1.forEach((video) => video.play());
+				} else {
+					// Pause all videos
+					videos1.forEach((video) => video.pause());
+				}
+			});
+
+			const playPauseToggle2 =
+				document.querySelector("#OpenSoraControl");
+			const videos2 = document.querySelectorAll(
+				"#second-sub-collapse-one video"
+			);
+
+			// Add event listener to the checkbox
+			playPauseToggle2.addEventListener("change", (event) => {
+				if (event.target.checked) {
+					// Play all videos
+					videos2.forEach((video) => video.play());
+				} else {
+					// Pause all videos
+					videos2.forEach((video) => video.pause());
+				}
+			});
+
+			const playPauseToggle3 =
+				document.querySelector("#AblationControl1");
+			const videos3 = document.querySelectorAll(
+				"#third-sub-collapse-one video"
+			);
+
+			// Add event listener to the checkbox
+			playPauseToggle3.addEventListener("change", (event) => {
+				if (event.target.checked) {
+					// Play all videos
+					videos3.forEach((video) => video.play());
+				} else {
+					// Pause all videos
+					videos3.forEach((video) => video.pause());
+				}
+			});
+			const playPauseToggle4 =
+				document.querySelector("#AblationControl2");
+			const videos4 = document.querySelectorAll(
+				"#fourth-sub-collapse-one video"
+			);
+
+			// Add event listener to the checkbox
+			playPauseToggle4.addEventListener("change", (event) => {
+				if (event.target.checked) {
+					// Play all videos
+					videos4.forEach((video) => video.play());
+				} else {
+					// Pause all videos
+					videos4.forEach((video) => video.pause());
+				}
+			});
+		});
+
+		document.addEventListener('DOMContentLoaded', () => {
+			const mainVideo = document.getElementById('mainVideo');
+			const videoButtons = document.querySelectorAll('.video-thumb-btn');
+
+			videoButtons[0].classList.add('is-active');
+
+			videoButtons.forEach(button => {
+				button.addEventListener('click', () => {
+					const videoSrc = button.dataset.video;
+
+					mainVideo.src = videoSrc;
+					mainVideo.load();
+					mainVideo.play();
+
+					videoButtons.forEach(btn => btn.classList.remove('is-active'));
+					button.classList.add('is-active');
+				});
+			});
+		});
+	</script>
+</body>
+
+</html>
